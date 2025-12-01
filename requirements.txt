@@ -1,3 +1,4 @@
 aiohttp==3.13
 aiogram==3.9.0
 python-dotenv==1.2.1
+gTTS==2.5.4
