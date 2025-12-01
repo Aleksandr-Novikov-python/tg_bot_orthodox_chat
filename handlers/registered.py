@@ -104,6 +104,46 @@ async def start_handler(message: types.Message):
             await message.answer(REGISTER_PROMPT)
 
 
+from aiogram.filters import Command
+from database.db import add_user  # функция для добавления пользователя в БД
+
+# --- Хендлер /register ---
+@registered.message(Command("register", ignore_case=True))
+async def register_handler(message: types.Message):
+    if message.chat.type != ChatType.PRIVATE:
+        return
+
+    user_id = message.from_user.id
+    name = message.from_user.full_name
+
+    try:
+        is_reg = await is_registered(user_id)
+    except Exception as e:
+        await send_log(message.bot, f"Ошибка проверки регистрации: {e}")
+        is_reg = False
+
+    if is_reg:
+        await message.answer(f"ℹ️ {name}, ты уже зарегистрирован.")
+    else:
+        try:
+            await add_user(user_id, name)  # добавляем в БД
+            text = f"✅ {name}, регистрация прошла успешно! Добро пожаловать."
+            ok = await send_voice(message, text)
+            if not ok:
+                await message.answer(text)
+
+            # Кнопка для перехода в группу
+            kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="Перейти в группу", url=GROUP_CHAT_LINK)]
+                ]
+            )
+            await message.answer("👉 Теперь можешь войти в группу:", reply_markup=kb)
+
+            await send_log(message.bot, f"👤 Новый пользователь зарегистрирован: {name} ({user_id})")
+        except Exception as e:
+            await send_log(message.bot, f"Ошибка регистрации: {e}")
+            await message.answer("⛔ Произошла ошибка при регистрации. Попробуй ещё раз.")
 
 
 # from aiogram import F, Router, types
